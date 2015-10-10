@@ -1,0 +1,55 @@
+source_data_filename <- "https://d396qusza40orc.cloudfront.net/exdata%2Fdata%2Fhousehold_power_consumption.zip"
+tempfn1 <- tempfile()
+download.file(source_data_filename, tempfn1, method="curl")
+internalfns <- unzip(tempfn1, list=TRUE)
+con <- unz(tempfn1, internalfns[[1]])
+data <- read.delim(con, header=TRUE, sep=";", quote="\"", dec=".",
+                   fill=FALSE, comment.char="", na.strings="?",
+                   colClasses=c(rep("character", 2), rep("numeric", 7)),
+                   stringsAsFactors=FALSE)
+unlink(tempfn1)
+# Example line:
+#    Date;Time;Global_active_power;Global_reactive_power;Voltage;Global_intensity;Sub_metering_1;Sub_metering_2;Sub_metering_3
+#    16/12/2006;17:24:00;4.216;0.418;234.840;18.400;0.000;1.000;17.000
+
+# Type coerce Date and add a POSIXlt datetime
+data <- transform(data,
+                  datetime = as.POSIXlt(paste(Date, Time, sep=":"), format="%d/%m/%Y:%H:%M:%S"),
+                  Date = as.Date(Date, format="%d/%m/%Y"))
+
+# Subset down the data to 2007-02-01 and 2007-02-02 (YYYY-MM-DD) as requested in the
+# course project instructions.  This could have been done earlier to speed things up,
+# but I don't trust the file format to stay the same over time.
+desired_dates <- c(as.Date("2007-02-01", format="%Y-%m-%d"),
+                   as.Date("2007-02-02", format="%Y-%m-%d"))
+data <- subset(data, (Date %in% desired_dates))
+
+# Generate plot 4
+png(filename="plot4.png", width=480, height=480, units="px")
+old_pars <- par(mfrow=c(2, 2)) # 2x2 plots on one page/image
+# Upper left plot
+plot(data$datetime, data$Global_active_power, type="l",
+              xlab="", ylab="Global Active Power")
+
+# Upper right plot
+plot(data$datetime, data$Voltage, type="l",
+              xlab="datetime", ylab="Voltage")
+
+# Lower left plot
+plot(data$datetime, data$Sub_metering_1, type="l", col="black",
+     xlab="", ylab="Energy sub metering")
+lines(data$datetime, data$Sub_metering_2, type="l", col="red",
+     xlab="", ylab="")
+lines(data$datetime, data$Sub_metering_3, type="l", col="blue",
+     xlab="", ylab="")
+legend("topright", text.width=strwidth("Sub_metering_1"),
+       legend=c("Sub_metering_1", "Sub_metering_2", "Sub_metering_3"),
+       lty=c(1, 1, 1), col=c("black", "red", "blue"),
+       xjust=1, yjust=1, bty="n")
+
+# Lower right plot
+plot(data$datetime, data$Global_reactive_power, type="l",
+              xlab="datetime", ylab="Global_reactive_power")
+
+dev.off()
+par(old_pars)
